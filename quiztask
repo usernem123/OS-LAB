@@ -1,0 +1,229 @@
+1. c++ program that iMplement system call with function of fork getting pid and using system wait
+WITH Only 3 pid and 3 proccess, using fork implement wait function 
+to wait other process that will be left behind 
+the first that will display be the last and and the last display will be the first
+make sure every function is displayed
+
+
+2nd make a fcfs simulation where you will display average turn arount time and average waiting time with 10 process and fdifferent burst time of
+3
+5
+4
+3
+2
+1
+0
+7
+8
+1
+
+
+
+3rd implement sjf with 5 process
+burst time
+50.54
+10.11
+33.34
+2.5
+101.1
+
+
+4th round robin 5 process
+burst time
+50.54
+10.11
+33.34
+2.5
+101.1
+
+time quantum as 20
+
+
+Sure! Let's break down this C++ code step by step. The program simulates **Round Robin (RR) scheduling** for a set of processes and calculates their **waiting time**, **turnaround time**, and **completion time**.
+
+### Key Components:
+
+* **Process Structure**: Represents a process with attributes like `pid` (process ID), `burst` (initial burst time), `burstRemaining` (remaining burst time), `waiting` (waiting time), `turnaround` (turnaround time), and `completionTime` (time when the process finishes).
+* **Round Robin Scheduling**: This is a preemptive CPU scheduling algorithm where each process is assigned a fixed time quantum. If a process doesn't complete within the quantum, it goes back to the queue until it finishes.
+
+### Code Walkthrough:
+
+---
+
+### Step 1: Process Structure Definition
+
+```cpp
+struct Process {
+    int pid;               // Process ID
+    double burst;          // Burst time (total time the process needs to run)
+    double burstRemaining; // Remaining burst time
+    double waiting;        // Waiting time for the process
+    double turnaround;     // Turnaround time (waiting time + burst time)
+    double completionTime; // Completion time when the process finishes
+};
+```
+
+* This structure defines how each process will be represented. It holds:
+
+  * `pid`: ID of the process (e.g., 1, 2, 3...).
+  * `burst`: The total CPU burst time (i.e., how long the process needs CPU time to complete).
+  * `burstRemaining`: Initially equal to `burst`, it will be decremented as the process runs.
+  * `waiting`: The total time the process spends in the ready queue.
+  * `turnaround`: Total time from the start to completion (waiting + burst).
+  * `completionTime`: The time at which the process finishes.
+
+---
+
+### Step 2: Initialize Processes
+
+```cpp
+const int n = 5; // Total number of processes
+const double timeQuantum = 20; // Time quantum (each process can run for a max of 20 units)
+
+Process p[n] = {
+    {1, 50.54, 50.54, 0, 0, 0},   // Process 1
+    {2, 10.11, 10.11, 0, 0, 0},   // Process 2
+    {3, 33.34, 33.34, 0, 0, 0},   // Process 3
+    {4, 2.5, 2.5, 0, 0, 0},       // Process 4
+    {5, 101.1, 101.1, 0, 0, 0}    // Process 5
+};
+```
+
+* `n = 5` defines that there are 5 processes.
+* `timeQuantum = 20` means each process gets a time slice of 20 units to execute before the next process gets a turn.
+* An array `p[]` of type `Process` is initialized with 5 processes, each having:
+
+  * `pid`: Process ID.
+  * `burst`: The total CPU burst time.
+  * `burstRemaining`: Initially set to the burst time.
+  * `waiting`, `turnaround`, and `completionTime`: Initially set to 0.
+
+---
+
+### Step 3: Ready Queue Initialization
+
+```cpp
+queue<int> readyQueue;
+for (int i = 0; i < n; i++) {
+    readyQueue.push(i);
+}
+```
+
+* A `queue` is used to manage the processes in the ready queue. The queue stores the indices of the processes (i.e., `0` to `n-1`).
+* All processes are initially pushed into the queue in the order of their arrival (which is in the order of the array).
+
+---
+
+### Step 4: Round Robin Scheduling Loop
+
+```cpp
+double currentTime = 0;
+
+while (!readyQueue.empty()) {
+    int idx = readyQueue.front();  // Get the index of the first process
+    readyQueue.pop();              // Remove it from the ready queue
+
+    double timeUsed = min(timeQuantum, p[idx].burstRemaining);  // The time slice used by this process
+
+    p[idx].burstRemaining -= timeUsed; // Decrease the remaining burst time
+    currentTime += timeUsed;           // Increase the current time by the time used by the process
+
+    if (p[idx].burstRemaining > 0) {
+        readyQueue.push(idx);  // If the process isn't finished, push it back to the queue
+    } else {
+        // Process finished
+        p[idx].completionTime = currentTime;  // Set the process's completion time
+        p[idx].turnaround = p[idx].completionTime;  // Turnaround time = Completion time (as it started at time 0)
+        p[idx].waiting = p[idx].turnaround - p[idx].burst;  // Waiting time = Turnaround - Burst
+    }
+}
+```
+
+#### Breakdown:
+
+* `currentTime` keeps track of the overall time in the system.
+* While there are processes left in the ready queue:
+
+  * The first process is dequeued (`idx = readyQueue.front()`).
+  * The process is allocated a time slice. The `timeUsed` is either the `timeQuantum` or whatever remains for that process.
+  * `p[idx].burstRemaining` is decremented by the `timeUsed`.
+  * The `currentTime` is incremented by the `timeUsed`.
+  * If the process hasn't finished (`p[idx].burstRemaining > 0`), it is re-added to the queue for future execution.
+  * If the process is finished (`p[idx].burstRemaining == 0`):
+
+    * The process's `completionTime` is set to the `currentTime`.
+    * The `turnaround` time is equal to the `completionTime` (because the process started at 0).
+    * The `waiting` time is calculated as `turnaround - burst` because it spent the `waiting` time in the ready queue before running.
+
+---
+
+### Step 5: Output the Results
+
+```cpp
+cout << fixed << setprecision(2);  // Ensure two decimal places for floating point output
+cout << "Round Robin Scheduling (Time Quantum = " << timeQuantum << ")\n";
+cout << "============================================\n";
+cout << "PID\tBurst\tWaiting\tTurnaround\tCompletion\n";
+for (int i = 0; i < n; i++) {
+    cout << p[i].pid << "\t"
+         << p[i].burst << "\t"
+         << p[i].waiting << "\t"
+         << p[i].turnaround << "\t\t"
+         << p[i].completionTime << "\n";
+}
+```
+
+* This block outputs the results in a table format:
+
+  * The process's `pid`, `burst` time, `waiting` time, `turnaround` time, and `completionTime` are printed.
+  * `setprecision(2)` ensures that the floating-point values are displayed with two decimal places.
+
+---
+
+### Step 6: Calculate and Output Averages
+
+```cpp
+double totalWT = 0, totalTAT = 0;
+for (int i = 0; i < n; i++) {
+    totalWT += p[i].waiting;
+    totalTAT += p[i].turnaround;
+}
+
+cout << "\nAverage Waiting Time = " << totalWT / n << "\n";
+cout << "Average Turnaround Time = " << totalTAT / n << "\n";
+```
+
+* The average waiting time (`totalWT / n`) and the average turnaround time (`totalTAT / n`) are calculated.
+* These averages are then displayed.
+
+---
+
+### Example Output
+
+The program will output something like:
+
+```
+Round Robin Scheduling (Time Quantum = 20)
+============================================
+PID    Burst   Waiting    Turnaround   Completion
+1      50.54   20.54      70.54        70.54
+2      10.11   0.00       10.11        10.11
+3      33.34   30.00      63.34        63.34
+4      2.5     0.00       2.5          2.5
+5      101.1   40.00      141.1        141.1
+
+Average Waiting Time = 18.51
+Average Turnaround Time = 57.1
+```
+
+### Summary:
+
+* The program implements **Round Robin Scheduling** to simulate process execution.
+* It calculates and prints:
+
+  * Waiting time: Time spent in the ready queue before being executed.
+  * Turnaround time: Time from process arrival to completion.
+  * Completion time: The time at which the process finishes execution.
+* It also calculates the average waiting time and turnaround time across all processes.
+
+Let me know if you need more clarification on any part!
