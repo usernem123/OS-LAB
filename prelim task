@@ -1,0 +1,239 @@
+using c++ namd a file prelim.cpp MAKE A function FOR
+time_quantum
+roundrobin
+sjf
+srtf
+in one file with all Separate function OF THE SAID ALGORITHM
+VARIABLES SHOULD BE IN ACRONYMS
+MAKE SURE IT WAS ENCAPSULATED NAMED PROCESS
+IT SHOULD HAVE CALCULATOR TO CALCUALTE MEDIAN OR MEAN OF BUSRST TIME
+IT SHOLD BE NAME RECCOMMENDED TIME QUANTUM
+THE DISPLAY IN THE TABLE SHOULD BE THE RESULT VALUES
+PID, ARRIVAL. BUSRT,COMPLETION, TURNAROUND, WAITING
+AT THE BOTTOM IS THE AVE WAITING TIME AND AND AVERAGE TURNAROUND TIME
+THE VARIABLES SHOULD BE INITIATED INSIDE THE MAIN 
+AND THE FUNCTION IS OUTSIDE THE MAIN
+THE TABLE roundrobin, SJF , SRTF SHOULD IN ORDER
+
+THE ORDER OF THE FUNCTION IN THE CODE IS TIME QUANTUM, ROUNDROBBIN, SJF, SRTF AND LASTLY THE MAIN
+
+ARRIVAL
+4
+2
+3
+6
+1
+5
+8
+7
+BURST
+53
+43
+18
+16
+44
+73
+99
+27
+
+
+#include <iostream>
+#include <iomanip>
+#include <vector>
+#include <algorithm>
+#include <queue>
+
+using namespace std;
+
+struct PROCESS {
+    int PID, AT, BT, CT, TAT, WT, RBT;
+};
+
+void print_line() {
+    cout << "+-----+----+----+----+-----+----+\n";
+}
+
+void print_header() {
+    print_line();
+    cout << "| PID | AT | BT | CT | TAT | WT |\n";
+    print_line();
+}
+
+/* ===== TIME QUANTUM ===== */
+int time_quantum(vector<int> BT) {
+    double SUM = 0;
+    for (int x : BT) SUM += x;
+
+    sort(BT.begin(), BT.end());
+    double MEAN = SUM / BT.size();
+    double MED = BT[BT.size() / 2];
+
+    return (int)((MEAN + MED) / 2);
+}
+
+/* ===== ROUND ROBIN ===== */
+void roundrobin(vector<PROCESS> P, int TQ) {
+    int N = P.size(), T = 0;
+    queue<int> Q;
+
+    for (int i = 0; i < N; i++) {
+        P[i].RBT = P[i].BT;
+        Q.push(i);
+    }
+
+    while (!Q.empty()) {
+        int i = Q.front(); Q.pop();
+        int EX = min(TQ, P[i].RBT);
+        P[i].RBT -= EX;
+        T += EX;
+
+        if (P[i].RBT == 0)
+            P[i].CT = T;
+        else
+            Q.push(i);
+    }
+
+    double AWT = 0, ATAT = 0;
+
+    cout << "\nROUND ROBIN (TQ = " << TQ << ")\n";
+    print_header();
+
+    for (auto &x : P) {
+        x.TAT = x.CT - x.AT;
+        x.WT = x.TAT - x.BT;
+        AWT += x.WT;
+        ATAT += x.TAT;
+
+        cout << "| " << setw(3) << x.PID
+             << " | " << setw(2) << x.AT
+             << " | " << setw(2) << x.BT
+             << " | " << setw(2) << x.CT
+             << " | " << setw(3) << x.TAT
+             << " | " << setw(2) << x.WT << " |\n";
+    }
+    print_line();
+
+    cout << "AVERAGE WAITING TIME: " << AWT / N << endl;
+    cout << "AVERAGE TURNAROUND TIME: " << ATAT / N << endl;
+}
+
+/* ===== SJF ===== */
+void sjf(vector<PROCESS> P) {
+    int N = P.size(), T = 0;
+    vector<bool> DONE(N, false);
+
+    for (int C = 0; C < N; C++) {
+        int IDX = -1, MIN = 1e9;
+        for (int i = 0; i < N; i++) {
+            if (!DONE[i] && P[i].AT <= T && P[i].BT < MIN) {
+                MIN = P[i].BT;
+                IDX = i;
+            }
+        }
+
+        if (IDX == -1) { T++; C--; continue; }
+
+        T += P[IDX].BT;
+        P[IDX].CT = T;
+        DONE[IDX] = true;
+    }
+
+    double AWT = 0, ATAT = 0;
+    cout << "\nSHORTEST JOB FIRST\n";
+    print_header();
+
+    for (auto &x : P) {
+        x.TAT = x.CT - x.AT;
+        x.WT = x.TAT - x.BT;
+        AWT += x.WT;
+        ATAT += x.TAT;
+
+        cout << "| " << setw(3) << x.PID
+             << " | " << setw(2) << x.AT
+             << " | " << setw(2) << x.BT
+             << " | " << setw(2) << x.CT
+             << " | " << setw(3) << x.TAT
+             << " | " << setw(2) << x.WT << " |\n";
+    }
+    print_line();
+
+    cout << "AVERAGE WAITING TIME: " << AWT / N << endl;
+    cout << "AVERAGE TURNAROUND TIME: " << ATAT / N << endl;
+}
+
+/* ===== SRTF ===== */
+void srtf(vector<PROCESS> P) {
+    int N = P.size(), T = 0, DONE = 0;
+
+    for (int i = 0; i < N; i++)
+        P[i].RBT = P[i].BT;
+
+    while (DONE < N) {
+        int IDX = -1, MIN = 1e9;
+
+        for (int i = 0; i < N; i++) {
+            if (P[i].AT <= T && P[i].RBT > 0 && P[i].RBT < MIN) {
+                MIN = P[i].RBT;
+                IDX = i;
+            }
+        }
+
+        if (IDX == -1) { T++; continue; }
+
+        P[IDX].RBT--;
+        T++;
+
+        if (P[IDX].RBT == 0) {
+            P[IDX].CT = T;
+            DONE++;
+        }
+    }
+
+    double AWT = 0, ATAT = 0;
+    cout << "\nSHORTEST REMAINING TIME FIRST\n";
+    print_header();
+
+    for (auto &x : P) {
+        x.TAT = x.CT - x.AT;
+        x.WT = x.TAT - x.BT;
+        AWT += x.WT;
+        ATAT += x.TAT;
+
+        cout << "| " << setw(3) << x.PID
+             << " | " << setw(2) << x.AT
+             << " | " << setw(2) << x.BT
+             << " | " << setw(2) << x.CT
+             << " | " << setw(3) << x.TAT
+             << " | " << setw(2) << x.WT << " |\n";
+    }
+    print_line();
+
+    cout << "AVERAGE WAITING TIME: " << AWT / N << endl;
+    cout << "AVERAGE TURNAROUND TIME: " << ATAT / N << endl;
+}
+
+/* ===== MAIN ===== */
+int main() {
+    vector<int> AT = {4,2,3,6,1,5,8,7};
+    vector<int> BT = {53,43,18,16,44,73,99,27};
+
+    vector<PROCESS> P;
+    for (int i = 0; i < AT.size(); i++) {
+        PROCESS X;
+        X.PID = i + 1;
+        X.AT = AT[i];
+        X.BT = BT[i];
+        P.push_back(X);
+    }
+
+    int TQ = time_quantum(BT);
+    cout << "RECOMMENDED TIME QUANTUM: " << TQ << endl;
+
+    roundrobin(P, TQ);
+    sjf(P);
+    srtf(P);
+
+    return 0;
+}
+nem.hernanjay@ue.edu.ph
+20221100339
